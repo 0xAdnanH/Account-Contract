@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -8,11 +9,26 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
+/**
+ * @title Account
+ * @dev A smart contract that provides functionalities for interacting with ERC20 tokens and ERC721 non-fungible tokens (NFTs).
+ */
 contract Account is Ownable, ERC165 {
     receive() external payable {}
 
+    /**
+     * @dev Emitted when a call to an external contract succeeds.
+     */
     event CallSucceeded();
 
+    /**
+     * @dev Makes a call to an external contract and sends Ether along with the call.
+     * Only the contract owner can invoke this function.
+     * @param _recipient The address of the recipient contract.
+     * @param valueTosend The amount of Ether to send with the call.
+     * @param dataTosend The data to include in the call.
+     * @return The result of the call.
+     */
     function callandSend(
         address _recipient,
         uint256 valueTosend,
@@ -25,6 +41,13 @@ contract Account is Ownable, ERC165 {
         return Address.verifyCallResult(success, returnData, "Call failed");
     }
 
+    /**
+     * @dev Sends ERC20 tokens to a specified address.
+     * Only the contract owner can invoke this function.
+     * @param tokenAddress The address of the ERC20 token contract.
+     * @param to The address of the recipient.
+     * @param amount The amount of tokens to send.
+     */
     function sendERC20(
         address tokenAddress,
         address to,
@@ -34,25 +57,48 @@ contract Account is Ownable, ERC165 {
         emit CallSucceeded();
     }
 
+    /**
+     * @dev Transfers ERC721 tokens from one address to another.
+     * Only the contract owner can invoke this function.
+     * @param NFTaddress The address of the ERC721 token contract.
+     * @param from The address of the current owner.
+     * @param to The address of the recipient.
+     * @param tokenId The ID of the token to transfer.
+     */
     function sendERC721(
         address NFTaddress,
         address from,
         address to,
-        uint256 amount
+        uint256 tokenId
     ) public onlyOwner {
-        IERC721(NFTaddress).transferFrom(from, to, amount);
+        IERC721(NFTaddress).transferFrom(from, to, tokenId);
         emit CallSucceeded();
     }
 
+    /**
+     * @dev Receives ERC721 tokens. Returns the magic value of the ERC721 receiver interface.
+     * @param operator The address that called the function.
+     * @param from The address from which the token is transferred.
+     * @param tokenId The ID of the transferred token.
+     * @param data Additional data.
+     * @return The magic value of the ERC721 receiver interface.
+     */
     function onERC721Received(
-        address /*operator*/,
-        address /*from*/,
-        uint256 /*tokenId*/,
-        bytes calldata /*data*/
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
     ) external pure returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
 
+    /**
+     * @dev Verifies the validity of a provided signature.
+     * @param _hash The message hash that was signed.
+     * @param _signature The provided signature.
+     * @return The magic value `0x1626ba7e` if the signature is valid and matches the contract owner's address.
+     * Otherwise, it returns `0xffffffff`.
+     */
     function isValidSignature(
         bytes32 _hash,
         bytes memory _signature
@@ -65,6 +111,11 @@ contract Account is Ownable, ERC165 {
         }
     }
 
+    /**
+     * @dev Checks if the contract supports a given interface.
+     * @param interfaceId The interface identifier.
+     * @return True if the contract supports the interface, false otherwise.
+     */
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override returns (bool) {
